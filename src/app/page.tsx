@@ -15,6 +15,15 @@ export default function Home() {
   const videoRef = useRef<HTMLVideoElement>(null)
   const sectionRefs = useRef<(HTMLDivElement | null)[]>([])
 
+  // Remove CSS preloader on mount - React takes over
+  useEffect(() => {
+    const preloader = document.getElementById('__preloader')
+    if (preloader) {
+      preloader.style.opacity = '0'
+      setTimeout(() => preloader.remove(), 300)
+    }
+  }, [])
+
   // Generate particles once
   useEffect(() => {
     setParticles(Array.from({ length: 25 }, (_, i) => ({
