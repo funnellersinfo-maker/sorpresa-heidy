@@ -1,15 +1,15 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 
 export default function Home() {
-  const [isPlaying, setIsPlaying] = useState(false)
   const [showVideo, setShowVideo] = useState(false)
-  const [audioStarted, setAudioStarted] = useState(false)
   const [heartClicked, setHeartClicked] = useState(false)
+  const [audioPlaying, setAudioPlaying] = useState(false)
   const [particles, setParticles] = useState<Array<{ id: number; x: number; y: number; size: number; delay: number }>>([])
   const audioRef = useRef<HTMLAudioElement>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
+  const audioStartedRef = useRef(false)
 
   useEffect(() => {
     const newParticles = Array.from({ length: 30 }, (_, i) => ({
@@ -22,19 +22,43 @@ export default function Home() {
     setParticles(newParticles)
   }, [])
 
-  const toggleAudio = () => {
-    if (!audioRef.current) return
-    if (isPlaying) {
-      audioRef.current.pause()
-    } else {
-      audioRef.current.play()
+  const startAudio = useCallback(() => {
+    if (audioStartedRef.current) return
+    audioStartedRef.current = true
+    if (audioRef.current) {
+      audioRef.current.play().then(() => {
+        setAudioPlaying(true)
+      }).catch(() => {
+        audioStartedRef.current = false
+      })
     }
-    setIsPlaying(!isPlaying)
-    setAudioStarted(true)
-  }
+  }, [])
+
+  // Auto-play audio on first scroll
+  useEffect(() => {
+    const handleScroll = () => {
+      startAudio()
+    }
+
+    const handleTouch = () => {
+      startAudio()
+    }
+
+    window.addEventListener('scroll', handleScroll, { passive: true })
+    window.addEventListener('touchstart', handleTouch, { passive: true, once: true })
+    window.addEventListener('click', handleTouch, { once: true })
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll)
+      window.removeEventListener('touchstart', handleTouch)
+      window.removeEventListener('click', handleTouch)
+    }
+  }, [startAudio])
 
   const handleHeartClick = () => {
     if (heartClicked) return
+    // Ensure audio is playing when heart is touched
+    startAudio()
     setHeartClicked(true)
     setTimeout(() => {
       setShowVideo(true)
@@ -55,8 +79,40 @@ export default function Home() {
     }
   }, [showVideo])
 
+  // Keep audio playing state in sync
+  useEffect(() => {
+    const audio = audioRef.current
+    if (!audio) return
+    const onPlay = () => setAudioPlaying(true)
+    const onPause = () => setAudioPlaying(false)
+    audio.addEventListener('play', onPlay)
+    audio.addEventListener('pause', onPause)
+    return () => {
+      audio.removeEventListener('play', onPlay)
+      audio.removeEventListener('pause', onPause)
+    }
+  }, [])
+
   return (
     <div className="landing-page">
+      {/* Hidden audio element - auto-plays on first scroll/touch */}
+      <audio ref={audioRef} loop preload="auto">
+        <source src="/cancion.mp3" type="audio/mpeg" />
+      </audio>
+
+      {/* Floating now-playing indicator */}
+      {audioPlaying && (
+        <div className="now-playing-indicator">
+          <div className="np-visualizer">
+            <span className="np-bar np-bar-1" />
+            <span className="np-bar np-bar-2" />
+            <span className="np-bar np-bar-3" />
+            <span className="np-bar np-bar-4" />
+          </div>
+          <span className="np-text">🎵 Tejiendo un Amanecer</span>
+        </div>
+      )}
+
       {/* Floating particles background */}
       <div className="particles-container">
         {particles.map((p) => (
@@ -82,26 +138,6 @@ export default function Home() {
           <h1 className="title-main">Feliz Cumpleaños</h1>
           <p className="subtitle">✦ 28 ✦</p>
           <div className="sparkle-line" />
-        </div>
-
-        {/* Audio Player */}
-        <div className="audio-section">
-          <audio ref={audioRef} loop preload="auto">
-            <source src="/cancion.mp3" type="audio/mpeg" />
-          </audio>
-          <button className="audio-player-btn" onClick={toggleAudio}>
-            <div className={`audio-visualizer ${isPlaying ? 'active' : ''}`}>
-              <span className="bar bar-1" />
-              <span className="bar bar-2" />
-              <span className="bar bar-3" />
-              <span className="bar bar-4" />
-              <span className="bar bar-5" />
-            </div>
-            <span className="audio-label">
-              {audioStarted ? (isPlaying ? 'Reproduciendo...' : 'Pausado') : '▶ Toca para escuchar'}
-            </span>
-          </button>
-          <p className="audio-track-name">🎵 Tejiendo un Amanecer — Borrón y Veintiocho</p>
         </div>
 
         {/* Letter Box */}
@@ -231,6 +267,61 @@ export default function Home() {
           padding: 2rem 1rem;
         }
 
+        /* Now Playing floating indicator */
+        .now-playing-indicator {
+          position: fixed;
+          top: 12px;
+          left: 50%;
+          transform: translateX(-50%);
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          background: rgba(10, 10, 15, 0.85);
+          backdrop-filter: blur(12px);
+          -webkit-backdrop-filter: blur(12px);
+          border: 1px solid rgba(212, 175, 55, 0.2);
+          border-radius: 50px;
+          padding: 6px 16px;
+          z-index: 100;
+          animation: fadeDown 0.6s ease;
+        }
+
+        @keyframes fadeDown {
+          from { opacity: 0; transform: translateX(-50%) translateY(-10px); }
+          to { opacity: 1; transform: translateX(-50%) translateY(0); }
+        }
+
+        .np-visualizer {
+          display: flex;
+          align-items: flex-end;
+          gap: 2px;
+          height: 14px;
+        }
+
+        .np-bar {
+          width: 2px;
+          background: #d4af37;
+          border-radius: 1px;
+          animation: npVis 0.7s ease-in-out infinite alternate;
+        }
+
+        .np-bar-1 { height: 4px; animation-delay: 0s; }
+        .np-bar-2 { height: 8px; animation-delay: 0.12s; }
+        .np-bar-3 { height: 12px; animation-delay: 0.24s; }
+        .np-bar-4 { height: 6px; animation-delay: 0.36s; }
+
+        @keyframes npVis {
+          0% { height: 3px; }
+          100% { height: 14px; }
+        }
+
+        .np-text {
+          font-size: 0.7rem;
+          color: rgba(212, 175, 55, 0.8);
+          white-space: nowrap;
+          font-weight: 300;
+        }
+
         /* Floating particles */
         .particles-container {
           position: fixed;
@@ -315,87 +406,6 @@ export default function Home() {
           color: #d4af37;
           letter-spacing: 0.5em;
           font-weight: 400;
-        }
-
-        /* Audio Player */
-        .audio-section {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 0.75rem;
-          width: 100%;
-        }
-
-        .audio-player-btn {
-          display: flex;
-          align-items: center;
-          gap: 1rem;
-          background: rgba(212, 175, 55, 0.08);
-          border: 1px solid rgba(212, 175, 55, 0.25);
-          border-radius: 50px;
-          padding: 0.75rem 1.5rem;
-          cursor: pointer;
-          transition: all 0.3s ease;
-          color: #f0e6d3;
-          font-family: 'Inter', sans-serif;
-          font-size: 0.9rem;
-        }
-
-        .audio-player-btn:hover {
-          background: rgba(212, 175, 55, 0.15);
-          border-color: rgba(212, 175, 55, 0.5);
-          transform: scale(1.02);
-        }
-
-        .audio-player-btn:active {
-          transform: scale(0.98);
-        }
-
-        .audio-visualizer {
-          display: flex;
-          align-items: flex-end;
-          gap: 2px;
-          height: 18px;
-        }
-
-        .bar {
-          width: 3px;
-          background: #d4af37;
-          border-radius: 2px;
-          transition: height 0.3s ease;
-        }
-
-        .bar-1 { height: 6px; }
-        .bar-2 { height: 10px; }
-        .bar-3 { height: 14px; }
-        .bar-4 { height: 10px; }
-        .bar-5 { height: 6px; }
-
-        .audio-visualizer.active .bar {
-          animation: visualize 0.8s ease-in-out infinite alternate;
-        }
-
-        .audio-visualizer.active .bar-1 { animation-delay: 0s; }
-        .audio-visualizer.active .bar-2 { animation-delay: 0.1s; }
-        .audio-visualizer.active .bar-3 { animation-delay: 0.2s; }
-        .audio-visualizer.active .bar-4 { animation-delay: 0.3s; }
-        .audio-visualizer.active .bar-5 { animation-delay: 0.4s; }
-
-        @keyframes visualize {
-          0% { height: 4px; }
-          100% { height: 18px; }
-        }
-
-        .audio-label {
-          white-space: nowrap;
-          font-weight: 300;
-        }
-
-        .audio-track-name {
-          font-size: 0.75rem;
-          color: rgba(212, 175, 55, 0.6);
-          text-align: center;
-          font-style: italic;
         }
 
         /* Letter Box */
