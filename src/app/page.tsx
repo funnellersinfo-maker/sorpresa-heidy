@@ -261,6 +261,17 @@ export default function Home() {
               <span className="date-sparkle" style={{ animationDelay: '0.5s' }}>✦</span>
               <span className="date-sparkle" style={{ animationDelay: '1s' }}>✦</span>
             </div>
+            <div className="scroll-hint">
+              <div className="scroll-hint-mouse">
+                <div className="scroll-hint-dot" />
+              </div>
+              <span className="scroll-hint-text">Desliza</span>
+              <div className="scroll-hint-arrows">
+                <span className="scroll-hint-arrow" style={{ animationDelay: '0s' }}>˅</span>
+                <span className="scroll-hint-arrow" style={{ animationDelay: '0.15s' }}>˅</span>
+                <span className="scroll-hint-arrow" style={{ animationDelay: '0.3s' }}>˅</span>
+              </div>
+            </div>
           </div>
 
           {/* Section 1: Title */}
@@ -601,6 +612,65 @@ export default function Home() {
         .date-sparkles { display: flex; justify-content: center; gap: 1.5rem; margin-top: 0.8rem; }
         .date-sparkle { font-size: 0.6rem; color: #d4af37; animation: sparkle 2s ease-in-out infinite; opacity: 0.5; }
         @keyframes sparkle { 0%, 100% { opacity: 0.3; transform: scale(1); } 50% { opacity: 1; transform: scale(1.5); } }
+
+        /* ===== SCROLL HINT ===== */
+        .scroll-hint {
+          position: absolute;
+          bottom: 2.5rem;
+          left: 50%;
+          transform: translateX(-50%);
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 0.5rem;
+          animation: scrollHintIn 1s ease 1.5s both;
+        }
+        @keyframes scrollHintIn {
+          0% { opacity: 0; transform: translateX(-50%) translateY(10px); }
+          100% { opacity: 1; transform: translateX(-50%) translateY(0); }
+        }
+        .scroll-hint-mouse {
+          width: 24px; height: 38px;
+          border: 2px solid rgba(212, 175, 55, 0.5);
+          border-radius: 12px;
+          position: relative;
+        }
+        .scroll-hint-dot {
+          width: 4px; height: 8px;
+          background: #d4af37;
+          border-radius: 2px;
+          position: absolute;
+          top: 6px; left: 50%;
+          transform: translateX(-50%);
+          animation: scrollDot 1.8s ease-in-out infinite;
+        }
+        @keyframes scrollDot {
+          0% { top: 6px; opacity: 1; }
+          50% { top: 20px; opacity: 0.3; }
+          100% { top: 6px; opacity: 1; }
+        }
+        .scroll-hint-text {
+          font-family: 'Inter', sans-serif;
+          font-size: 0.7rem;
+          color: rgba(212, 175, 55, 0.6);
+          letter-spacing: 0.2em;
+          font-weight: 300;
+          text-transform: uppercase;
+        }
+        .scroll-hint-arrows {
+          display: flex; flex-direction: column; align-items: center; gap: 0;
+          line-height: 0;
+        }
+        .scroll-hint-arrow {
+          font-size: 0.8rem;
+          color: rgba(212, 175, 55, 0.5);
+          animation: arrowBounce 1.8s ease-in-out infinite;
+          line-height: 0.6;
+        }
+        @keyframes arrowBounce {
+          0%, 100% { opacity: 0.3; transform: translateY(0); }
+          50% { opacity: 1; transform: translateY(4px); }
+        }
 
         /* ===== HEADER ===== */
         .header-section {
