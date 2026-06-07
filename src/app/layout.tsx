@@ -1,12 +1,17 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { Toaster } from "@/components/ui/toaster";
 
 export const metadata: Metadata = {
-  title: "Feliz Cumpleaños 🎂",
-  description: "Un regalo digital hecho con amor para ti",
+  title: "Feliz Cumpleaños Heidy 🎂",
+  description: "Un regalo digital hecho con amor para ti en tu cumpleaños 28. Tejiendo un amanecer juntos.",
   icons: {
     icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💛</text></svg>",
+  },
+  openGraph: {
+    title: "Feliz Cumpleaños Heidy 🎂",
+    description: "Un regalo digital hecho con amor para ti en tu cumpleaños 28",
+    type: "website",
+    locale: "es_CO",
   },
 };
 
@@ -29,22 +34,12 @@ export default function RootLayout({
                 margin: 0 !important;
                 padding: 0 !important;
               }
-              /* Hide everything initially - prevents FOUC */
-              #__next, #root, body > * {
-                opacity: 0;
-              }
-              /* Show content once React hydrates */
-              body > * {
-                opacity: 1;
-                transition: opacity 0.01s;
-              }
             `,
           }}
         />
       </head>
       <body style={{ backgroundColor: '#0a0a0f', color: '#f0e6d3', margin: 0, overflow: 'hidden' }}>
         {children}
-        <Toaster />
       </body>
     </html>
   );
