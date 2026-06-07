@@ -27,9 +27,22 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="es" className="dark" suppressHydrationWarning>
+      <head>
+        <style
+          dangerouslySetInnerHTML={{
+            __html: `
+              html, body {
+                background: #0a0a0f !important;
+                color: #f0e6d3 !important;
+              }
+            `,
+          }}
+        />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
+        style={{ background: '#0a0a0f', color: '#f0e6d3' }}
       >
         {children}
         <Toaster />

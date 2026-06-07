@@ -6,11 +6,14 @@ export default function Home() {
   const [showVideo, setShowVideo] = useState(false)
   const [heartClicked, setHeartClicked] = useState(false)
   const [audioPlaying, setAudioPlaying] = useState(false)
+  const [flashActive, setFlashActive] = useState(false)
+  const [revealedSections, setRevealedSections] = useState<number[]>([])
   const [particles, setParticles] = useState<Array<{ id: number; x: number; y: number; size: number; delay: number }>>([])
   const audioRef = useRef<HTMLAudioElement>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
   const audioStartedRef = useRef(false)
 
+  // Generate particles once
   useEffect(() => {
     const newParticles = Array.from({ length: 30 }, (_, i) => ({
       id: i,
@@ -20,6 +23,62 @@ export default function Home() {
       delay: Math.random() * 5,
     }))
     setParticles(newParticles)
+  }, [])
+
+  // Auto-play audio immediately on mount
+  useEffect(() => {
+    const tryPlay = () => {
+      if (audioStartedRef.current || !audioRef.current) return
+      audioStartedRef.current = true
+      audioRef.current.play().then(() => {
+        setAudioPlaying(true)
+      }).catch(() => {
+        audioStartedRef.current = false
+      })
+    }
+
+    // Try immediately
+    tryPlay()
+
+    // Also try on any first user interaction as fallback
+    const handler = () => { tryPlay() }
+    window.addEventListener('touchstart', handler, { passive: true, once: true })
+    window.addEventListener('click', handler, { once: true })
+
+    return () => {
+      window.removeEventListener('touchstart', handler)
+      window.removeEventListener('click', handler)
+    }
+  }, [])
+
+  // Reveal letter sections one by one with delay
+  useEffect(() => {
+    const delays = [300, 800, 1500, 2200, 3500, 4800, 5800, 6800]
+    const timers: ReturnType<typeof setTimeout>[] = []
+
+    delays.forEach((delay, index) => {
+      timers.push(setTimeout(() => {
+        setRevealedSections(prev => [...prev, index])
+      }, delay))
+    })
+
+    return () => {
+      timers.forEach(timer => clearTimeout(timer))
+    }
+  }, [])
+
+  // Keep audio playing state in sync
+  useEffect(() => {
+    const audio = audioRef.current
+    if (!audio) return
+    const onPlay = () => setAudioPlaying(true)
+    const onPause = () => setAudioPlaying(false)
+    audio.addEventListener('play', onPlay)
+    audio.addEventListener('pause', onPause)
+    return () => {
+      audio.removeEventListener('play', onPlay)
+      audio.removeEventListener('pause', onPause)
+    }
   }, [])
 
   const startAudio = useCallback(() => {
@@ -34,35 +93,21 @@ export default function Home() {
     }
   }, [])
 
-  // Auto-play audio on first scroll
-  useEffect(() => {
-    const handleScroll = () => {
-      startAudio()
-    }
-
-    const handleTouch = () => {
-      startAudio()
-    }
-
-    window.addEventListener('scroll', handleScroll, { passive: true })
-    window.addEventListener('touchstart', handleTouch, { passive: true, once: true })
-    window.addEventListener('click', handleTouch, { once: true })
-
-    return () => {
-      window.removeEventListener('scroll', handleScroll)
-      window.removeEventListener('touchstart', handleTouch)
-      window.removeEventListener('click', handleTouch)
-    }
-  }, [startAudio])
-
   const handleHeartClick = () => {
     if (heartClicked) return
-    // Ensure audio is playing when heart is touched
     startAudio()
     setHeartClicked(true)
+
+    // Trigger flash effect
+    setTimeout(() => {
+      setFlashActive(true)
+    }, 400)
+
+    // After flash, show fullscreen video
     setTimeout(() => {
       setShowVideo(true)
-    }, 800)
+      setFlashActive(false)
+    }, 700)
   }
 
   const closeVideo = () => {
@@ -79,28 +124,19 @@ export default function Home() {
     }
   }, [showVideo])
 
-  // Keep audio playing state in sync
-  useEffect(() => {
-    const audio = audioRef.current
-    if (!audio) return
-    const onPlay = () => setAudioPlaying(true)
-    const onPause = () => setAudioPlaying(false)
-    audio.addEventListener('play', onPlay)
-    audio.addEventListener('pause', onPause)
-    return () => {
-      audio.removeEventListener('play', onPlay)
-      audio.removeEventListener('pause', onPause)
-    }
-  }, [])
+  const isRevealed = (index: number) => revealedSections.includes(index)
 
   return (
     <div className="landing-page">
-      {/* Hidden audio element - auto-plays on first scroll/touch */}
+      {/* Hidden audio */}
       <audio ref={audioRef} loop preload="auto">
         <source src="/cancion.mp3" type="audio/mpeg" />
       </audio>
 
-      {/* Floating now-playing indicator */}
+      {/* Flash overlay for video transition */}
+      {flashActive && <div className="flash-overlay" />}
+
+      {/* Now playing indicator */}
       {audioPlaying && (
         <div className="now-playing-indicator">
           <div className="np-visualizer">
@@ -113,7 +149,7 @@ export default function Home() {
         </div>
       )}
 
-      {/* Floating particles background */}
+      {/* Floating particles */}
       <div className="particles-container">
         {particles.map((p) => (
           <div
@@ -132,8 +168,28 @@ export default function Home() {
 
       {/* Main container */}
       <div className="main-container">
+        {/* Date with dopaminergic effect */}
+        <div className={`date-section ${isRevealed(0) ? 'revealed' : ''}`}>
+          <div className="date-glow" />
+          <div className="date-inner">
+            <span className="date-digit" style={{ animationDelay: '0s' }}>1</span>
+            <span className="date-digit" style={{ animationDelay: '0.1s' }}>3</span>
+            <span className="date-sep">/</span>
+            <span className="date-digit" style={{ animationDelay: '0.2s' }}>0</span>
+            <span className="date-digit" style={{ animationDelay: '0.3s' }}>6</span>
+            <span className="date-sep">/</span>
+            <span className="date-digit" style={{ animationDelay: '0.4s' }}>2</span>
+            <span className="date-digit" style={{ animationDelay: '0.5s' }}>6</span>
+          </div>
+          <div className="date-sparkles">
+            <span className="date-sparkle" style={{ animationDelay: '0s' }}>✦</span>
+            <span className="date-sparkle" style={{ animationDelay: '0.5s' }}>✦</span>
+            <span className="date-sparkle" style={{ animationDelay: '1s' }}>✦</span>
+          </div>
+        </div>
+
         {/* Header / Title */}
-        <div className="header-section">
+        <div className={`header-section ${isRevealed(1) ? 'revealed' : ''}`}>
           <div className="sparkle-line" />
           <h1 className="title-main">Feliz Cumpleaños</h1>
           <p className="subtitle">✦ 28 ✦</p>
@@ -142,39 +198,36 @@ export default function Home() {
 
         {/* Letter Box */}
         <div className="letter-box">
-          <div className="letter-decoration">✦ ✦ ✦</div>
-          <p className="letter-greeting">Para mi niña hermosa,</p>
-          <div className="letter-divider" />
-          <p className="letter-text">
+          <div className={`letter-decoration ${isRevealed(2) ? 'revealed' : ''}`}>✦ ✦ ✦</div>
+          <p className={`letter-greeting ${isRevealed(2) ? 'revealed' : ''}`}>Para mi niña hermosa,</p>
+          <div className={`letter-divider ${isRevealed(2) ? 'revealed' : ''}`} />
+
+          <p className={`letter-text ${isRevealed(3) ? 'revealed' : ''}`}>
             Hoy cumples 28 añitos y, mirándote hoy, solo puedo sentir un orgullo inmenso por la mujer que eres y un agradecimiento infinito por tener el privilegio de caminar a tu lado.
           </p>
-          <p className="letter-text">
+          <p className={`letter-text ${isRevealed(4) ? 'revealed' : ''}`}>
             Sé muy bien que nuestro camino no ha sido perfecto. Sé que he cometido errores reales, que he sido desleal, descuidado y que te he fallado con actitudes que nunca mereciste. No pretendo borrar el pasado con promesas vacías, porque sé que las palabras se las lleva el viento; hoy mi único objetivo es respaldar este amor con hechos, con respeto absoluto, cuidando cada detalle y protegiendo tu paz día tras día.
           </p>
-          <p className="letter-text">
+          <p className={`letter-text ${isRevealed(5) ? 'revealed' : ''}`}>
             Gracias por tu resiliencia, por tu amor incondicional y por este borrón y cuenta nueva que hoy nos une más fuerte. Quiero que camines con la tranquilidad de que mi corazón te pertenece solo a ti. Contigo quiero pasar el resto de mi vida, y aunque hoy te entrego este detalle digital, prepárate... porque muy pronto llegará ese anillo y ese &quot;sí para siempre&quot; que tanto deseo darte ante el mundo.
           </p>
-          <div className="letter-divider" />
-          <p className="letter-signature">
+
+          <div className={`letter-divider ${isRevealed(6) ? 'revealed' : ''}`} />
+          <p className={`letter-signature ${isRevealed(6) ? 'revealed' : ''}`}>
             Feliz cumpleaños, mi amor.<br />
             <span className="signature-highlight">Eres mi mayor bendición.</span>
           </p>
-          <div className="letter-decoration">✦ ✦ ✦</div>
+          <div className={`letter-decoration ${isRevealed(6) ? 'revealed' : ''}`}>✦ ✦ ✦</div>
         </div>
 
         {/* Heart Button */}
-        <div className={`heart-section ${heartClicked ? 'heart-exploded' : ''}`}>
+        <div className={`heart-section ${isRevealed(7) ? 'revealed' : ''} ${heartClicked ? 'heart-exploded' : ''}`}>
           <button
             className={`heart-btn ${heartClicked ? 'clicked' : ''}`}
             onClick={handleHeartClick}
             aria-label="Toca aquí con amor"
           >
-            <svg
-              className="heart-svg"
-              viewBox="0 0 24 24"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
+            <svg className="heart-svg" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path
                 d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"
                 fill="#d4af37"
@@ -185,7 +238,6 @@ export default function Home() {
             <span className="heart-label">Toca aquí con amor</span>
           </button>
 
-          {/* Explosion particles on click */}
           {heartClicked && (
             <div className="explosion-container">
               {Array.from({ length: 20 }).map((_, i) => (
@@ -205,26 +257,22 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Video Modal */}
+      {/* Fullscreen Video */}
       {showVideo && (
-        <div className="video-overlay" onClick={closeVideo}>
-          <div className="video-modal" onClick={(e) => e.stopPropagation()}>
-            <button className="video-close-btn" onClick={closeVideo} aria-label="Cerrar video">
-              ✕
-            </button>
-            <div className="video-wrapper">
-              <video
-                ref={videoRef}
-                controls
-                autoPlay
-                playsInline
-                className="video-player"
-              >
-                <source src="/collage.mp4" type="video/mp4" />
-                Tu navegador no soporta video.
-              </video>
-            </div>
-          </div>
+        <div className="video-fullscreen">
+          <button className="video-close-btn" onClick={closeVideo} aria-label="Cerrar video">
+            ✕
+          </button>
+          <video
+            ref={videoRef}
+            controls
+            autoPlay
+            playsInline
+            className="video-player-fs"
+          >
+            <source src="/collage.mp4" type="video/mp4" />
+            Tu navegador no soporta video.
+          </video>
         </div>
       )}
 
@@ -244,8 +292,31 @@ export default function Home() {
 
         html, body {
           overflow-x: hidden;
+          background: #0a0a0f !important;
+          color: #f0e6d3 !important;
         }
 
+        /* ===== FLASH OVERLAY ===== */
+        .flash-overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background: white;
+          z-index: 9999;
+          animation: flashBurst 0.6s ease-out forwards;
+          pointer-events: none;
+        }
+
+        @keyframes flashBurst {
+          0% { opacity: 0; }
+          10% { opacity: 1; }
+          30% { opacity: 1; }
+          100% { opacity: 0; }
+        }
+
+        /* ===== LANDING PAGE ===== */
         .landing-page {
           position: relative;
           min-height: 100vh;
@@ -267,7 +338,7 @@ export default function Home() {
           padding: 2rem 1rem;
         }
 
-        /* Now Playing floating indicator */
+        /* ===== NOW PLAYING ===== */
         .now-playing-indicator {
           position: fixed;
           top: 12px;
@@ -322,7 +393,7 @@ export default function Home() {
           font-weight: 300;
         }
 
-        /* Floating particles */
+        /* ===== PARTICLES ===== */
         .particles-container {
           position: fixed;
           top: 0;
@@ -352,7 +423,7 @@ export default function Home() {
           }
         }
 
-        /* Main container */
+        /* ===== MAIN CONTAINER ===== */
         .main-container {
           position: relative;
           z-index: 1;
@@ -365,14 +436,104 @@ export default function Home() {
           flex: 1;
         }
 
-        /* Header */
+        /* ===== DATE SECTION ===== */
+        .date-section {
+          opacity: 0;
+          transform: translateY(20px) scale(0.8);
+          transition: all 1s cubic-bezier(0.16, 1, 0.3, 1);
+          position: relative;
+          padding: 1rem 0 0.5rem;
+        }
+
+        .date-section.revealed {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
+
+        .date-glow {
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          width: 200px;
+          height: 60px;
+          background: radial-gradient(ellipse, rgba(212, 175, 55, 0.25), rgba(212, 175, 55, 0.05), transparent);
+          border-radius: 50%;
+          animation: dateGlow 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes dateGlow {
+          0% { opacity: 0.5; transform: translate(-50%, -50%) scale(1); }
+          100% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
+        }
+
+        .date-inner {
+          position: relative;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 2px;
+        }
+
+        .date-digit {
+          font-family: 'Playfair Display', Georgia, serif;
+          font-size: 1.8rem;
+          font-weight: 700;
+          color: #d4af37;
+          display: inline-block;
+          animation: digitPop 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+          text-shadow: 0 0 20px rgba(212, 175, 55, 0.5), 0 0 40px rgba(212, 175, 55, 0.2);
+        }
+
+        @keyframes digitPop {
+          0% { transform: scale(0) rotateY(90deg); opacity: 0; }
+          60% { transform: scale(1.3) rotateY(-10deg); }
+          100% { transform: scale(1) rotateY(0deg); opacity: 1; }
+        }
+
+        .date-sep {
+          font-family: 'Playfair Display', Georgia, serif;
+          font-size: 1.6rem;
+          color: rgba(212, 175, 55, 0.5);
+          margin: 0 4px;
+          animation: digitPop 0.4s cubic-bezier(0.16, 1, 0.3, 1) 0.3s both;
+        }
+
+        .date-sparkles {
+          display: flex;
+          justify-content: center;
+          gap: 1.5rem;
+          margin-top: 0.3rem;
+        }
+
+        .date-sparkle {
+          font-size: 0.5rem;
+          color: #d4af37;
+          animation: sparkle 2s ease-in-out infinite;
+          opacity: 0.5;
+        }
+
+        @keyframes sparkle {
+          0%, 100% { opacity: 0.3; transform: scale(1); }
+          50% { opacity: 1; transform: scale(1.5); }
+        }
+
+        /* ===== HEADER ===== */
         .header-section {
           text-align: center;
           display: flex;
           flex-direction: column;
           align-items: center;
           gap: 0.75rem;
-          padding-top: 1rem;
+          padding-top: 0.5rem;
+          opacity: 0;
+          transform: translateY(30px);
+          transition: all 1.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .header-section.revealed {
+          opacity: 1;
+          transform: translateY(0);
         }
 
         .sparkle-line {
@@ -408,7 +569,7 @@ export default function Home() {
           font-weight: 400;
         }
 
-        /* Letter Box */
+        /* ===== LETTER BOX ===== */
         .letter-box {
           width: 100%;
           background: rgba(255, 255, 255, 0.04);
@@ -431,11 +592,46 @@ export default function Home() {
           background: linear-gradient(90deg, transparent, rgba(212, 175, 55, 0.4), transparent);
         }
 
+        /* ===== MAGIC REVEAL ANIMATION ===== */
+        .letter-decoration,
+        .letter-greeting,
+        .letter-divider,
+        .letter-text,
+        .letter-signature {
+          opacity: 0;
+          transform: translateY(15px);
+          transition: all 1s cubic-bezier(0.16, 1, 0.3, 1);
+          max-height: 0;
+          overflow: hidden;
+          margin-bottom: 0;
+        }
+
+        .letter-decoration.revealed,
+        .letter-greeting.revealed,
+        .letter-divider.revealed,
+        .letter-text.revealed,
+        .letter-signature.revealed {
+          opacity: 1;
+          transform: translateY(0);
+          max-height: 500px;
+          overflow: visible;
+        }
+
+        .letter-text.revealed {
+          margin-bottom: 1rem;
+        }
+
         .letter-decoration {
           text-align: center;
           color: #d4af37;
           letter-spacing: 1em;
           font-size: 0.7rem;
+          opacity: 0;
+          margin: 0;
+          transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .letter-decoration.revealed {
           opacity: 0.6;
           margin: 0.5rem 0;
         }
@@ -446,6 +642,10 @@ export default function Home() {
           font-weight: 600;
           color: #d4af37;
           text-align: center;
+          margin-bottom: 0;
+        }
+
+        .letter-greeting.revealed {
           margin-bottom: 0.25rem;
         }
 
@@ -453,6 +653,10 @@ export default function Home() {
           width: 60px;
           height: 1px;
           background: linear-gradient(90deg, transparent, rgba(212, 175, 55, 0.4), transparent);
+          margin: 0 auto;
+        }
+
+        .letter-divider.revealed {
           margin: 1rem auto;
         }
 
@@ -460,7 +664,6 @@ export default function Home() {
           font-size: 0.95rem;
           line-height: 1.7;
           color: rgba(240, 230, 211, 0.9);
-          margin-bottom: 1rem;
           text-align: justify;
           font-weight: 300;
         }
@@ -479,14 +682,21 @@ export default function Home() {
           font-size: 1.15rem;
         }
 
-        /* Heart Section */
+        /* ===== HEART SECTION ===== */
         .heart-section {
           position: relative;
           display: flex;
           flex-direction: column;
           align-items: center;
           padding: 2rem 0;
-          transition: all 0.5s ease;
+          opacity: 0;
+          transform: scale(0.5);
+          transition: all 1.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .heart-section.revealed {
+          opacity: 1;
+          transform: scale(1);
         }
 
         .heart-section.heart-exploded {
@@ -548,7 +758,7 @@ export default function Home() {
           text-shadow: 0 0 20px rgba(212, 175, 55, 0.3);
         }
 
-        /* Explosion particles */
+        /* ===== EXPLOSION PARTICLES ===== */
         .explosion-container {
           position: absolute;
           top: 50%;
@@ -577,50 +787,39 @@ export default function Home() {
           }
         }
 
-        /* Video Modal */
-        .video-overlay {
+        /* ===== FULLSCREEN VIDEO ===== */
+        .video-fullscreen {
           position: fixed;
           top: 0;
           left: 0;
           width: 100%;
           height: 100%;
-          background: rgba(0, 0, 0, 0.92);
+          background: #000;
           z-index: 1000;
           display: flex;
           align-items: center;
           justify-content: center;
-          padding: 1rem;
-          animation: fadeIn 0.5s ease;
+          animation: videoReveal 0.3s ease-out;
         }
 
-        @keyframes fadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-
-        .video-modal {
-          position: relative;
-          width: 100%;
-          max-width: 420px;
-          animation: slideUp 0.5s ease;
-        }
-
-        @keyframes slideUp {
-          from { transform: translateY(40px); opacity: 0; }
-          to { transform: translateY(0); opacity: 1; }
+        @keyframes videoReveal {
+          0% { opacity: 0; }
+          100% { opacity: 1; }
         }
 
         .video-close-btn {
           position: absolute;
-          top: -40px;
-          right: 0;
-          background: rgba(212, 175, 55, 0.15);
+          top: 16px;
+          right: 16px;
+          background: rgba(0, 0, 0, 0.6);
+          backdrop-filter: blur(8px);
+          -webkit-backdrop-filter: blur(8px);
           border: 1px solid rgba(212, 175, 55, 0.3);
           color: #d4af37;
-          width: 36px;
-          height: 36px;
+          width: 40px;
+          height: 40px;
           border-radius: 50%;
-          font-size: 1rem;
+          font-size: 1.1rem;
           cursor: pointer;
           display: flex;
           align-items: center;
@@ -631,23 +830,17 @@ export default function Home() {
 
         .video-close-btn:hover {
           background: rgba(212, 175, 55, 0.3);
+          transform: scale(1.1);
         }
 
-        .video-wrapper {
-          border-radius: 16px;
-          overflow: hidden;
-          border: 1px solid rgba(212, 175, 55, 0.2);
-          box-shadow: 0 0 60px rgba(212, 175, 55, 0.15);
-        }
-
-        .video-player {
+        .video-player-fs {
           width: 100%;
-          max-height: 85vh;
+          height: 100%;
+          object-fit: contain;
           display: block;
-          border-radius: 16px;
         }
 
-        /* Footer */
+        /* ===== FOOTER ===== */
         .footer {
           position: relative;
           z-index: 1;
@@ -665,7 +858,7 @@ export default function Home() {
           letter-spacing: 0.03em;
         }
 
-        /* Scrollbar */
+        /* ===== SCROLLBAR ===== */
         ::-webkit-scrollbar {
           width: 4px;
         }
@@ -677,7 +870,6 @@ export default function Home() {
           border-radius: 4px;
         }
 
-        /* Selection */
         ::selection {
           background: rgba(212, 175, 55, 0.3);
           color: #f0e6d3;
