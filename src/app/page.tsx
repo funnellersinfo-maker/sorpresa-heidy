@@ -35,7 +35,20 @@ export default function Home() {
     })))
   }, [])
 
-  // Intersection Observer for scroll-triggered reveals
+  // Reveal section 0 (date) immediately on enter - it's always in first viewport
+  useEffect(() => {
+    if (!entered) return
+    const timer = setTimeout(() => {
+      setRevealedSections(prev => {
+        const next = new Set(prev)
+        next.add(0)
+        return next
+      })
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [entered])
+
+  // Intersection Observer for scroll-triggered reveals (sections 1+)
   useEffect(() => {
     if (!entered) return
 
@@ -44,22 +57,21 @@ export default function Home() {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
             const index = Number(entry.target.getAttribute('data-section'))
-            if (!isNaN(index) && !revealedSections.has(index)) {
-              const delay = index === 0 ? 200 : 600
+            if (!isNaN(index) && index > 0 && !revealedSections.has(index)) {
               setTimeout(() => {
                 setRevealedSections(prev => {
                   const next = new Set(prev)
                   next.add(index)
                   return next
                 })
-              }, delay)
+              }, 500)
             }
           }
         })
       },
       {
-        threshold: 0.2,
-        rootMargin: '0px 0px -80px 0px',
+        threshold: 0.15,
+        rootMargin: '0px 0px -60px 0px',
       }
     )
 
@@ -67,7 +79,7 @@ export default function Home() {
       sectionRefs.current.forEach((ref) => {
         if (ref) observer.observe(ref)
       })
-    }, 500)
+    }, 400)
 
     return () => {
       clearTimeout(timer)
