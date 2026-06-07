@@ -84,7 +84,8 @@ export default function RootLayout({
                 50% { opacity: 1; }
               }
 
-              /* Hide React content until hydrated - prevents FOUC */
+              /* Hide landing page until hydrated - prevents FOUC */
+              /* Only hidden-page needs !important since it must stay hidden until React takes over */
               .hidden-page {
                 opacity: 0 !important;
                 visibility: hidden !important;
@@ -93,13 +94,22 @@ export default function RootLayout({
                 left: 0 !important;
                 pointer-events: none !important;
               }
+              /* scroll-reveal uses NO !important so styled-jsx can override with .revealed */
               .scroll-reveal {
-                opacity: 0 !important;
+                opacity: 0;
+              }
+              .scroll-reveal.revealed {
+                opacity: 1;
               }
               .scroll-reveal-inner {
-                opacity: 0 !important;
-                max-height: 0 !important;
-                overflow: hidden !important;
+                opacity: 0;
+                max-height: 0;
+                overflow: hidden;
+              }
+              .scroll-reveal-inner.revealed {
+                opacity: 1;
+                max-height: 600px;
+                overflow: visible;
               }
             `,
           }}
