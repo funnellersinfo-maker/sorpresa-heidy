@@ -36,7 +36,7 @@ export default function RootLayout({
                 color: #f0e6d3 !important;
                 margin: 0 !important;
                 padding: 0 !important;
-                overflow: hidden !important;
+                overflow: hidden;
                 min-height: 100vh;
                 min-height: 100dvh;
               }

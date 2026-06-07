@@ -105,7 +105,8 @@ export default function Home() {
   const handleEnter = useCallback(() => {
     if (entered) return
     setEntered(true)
-    document.body.style.overflow = ''
+    document.body.style.overflow = 'auto'
+    document.documentElement.style.overflow = 'auto'
 
     if (audioRef.current) {
       audioRef.current.load()
