@@ -127,7 +127,7 @@ export default function Home() {
   const isRevealed = (index: number) => revealedSections.includes(index)
 
   return (
-    <div className="landing-page">
+    <div className="landing-page" style={{ background: 'linear-gradient(170deg, #0a0a0f 0%, #0d0b1a 20%, #150f2e 40%, #1a1145 60%, #120d30 80%, #0a0a0f 100%)', color: '#f0e6d3', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '2rem 1rem', fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, sans-serif' }}>
       {/* Hidden audio */}
       <audio ref={audioRef} loop preload="auto">
         <source src="/cancion.mp3" type="audio/mpeg" />

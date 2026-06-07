@@ -1,17 +1,6 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
 
 export const metadata: Metadata = {
   title: "Feliz Cumpleaños 🎂",
@@ -27,23 +16,43 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="es" className="dark" suppressHydrationWarning>
+    <html lang="es" suppressHydrationWarning style={{ backgroundColor: '#0a0a0f' }}>
       <head>
+        <meta name="theme-color" content="#0a0a0f" />
+        <meta name="color-scheme" content="dark" />
         <style
           dangerouslySetInnerHTML={{
             __html: `
-              html, body {
+              html {
+                background: #0a0a0f !important;
+              }
+              body {
                 background: #0a0a0f !important;
                 color: #f0e6d3 !important;
+              }
+              #__dark-shield {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: #0a0a0f;
+                z-index: 99999;
+                pointer-events: none;
+                animation: __shieldFade 0.4s ease 0.3s forwards;
+              }
+              @keyframes __shieldFade {
+                from { opacity: 1; }
+                to { opacity: 0; display: none; }
               }
             `,
           }}
         />
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
-        style={{ background: '#0a0a0f', color: '#f0e6d3' }}
+        style={{ backgroundColor: '#0a0a0f', color: '#f0e6d3', margin: 0 }}
       >
+        <div id="__dark-shield" />
         {children}
         <Toaster />
       </body>
