@@ -1,29 +1,23 @@
 ---
 Task ID: 1
-Agent: Main Agent
-Task: Create premium birthday landing page with cinematic design
+Agent: main
+Task: Redesign birthday landing page with two-screen approach and scroll-triggered reveals
 
 Work Log:
-- Explored project structure and verified uploaded media files (cancion.mp3, collage.mp4)
-- Copied media files to /public directory for serving (cancion.mp3, collage.mp4)
-- Created page.tsx with full birthday landing page including:
-  - Cinematic dark gradient background (black, midnight purple, gold accents)
-  - Floating particle animations in gold
-  - Audio player with visualizer bars and play/pause toggle
-  - Glassmorphism letter box with birthday message
-  - Interactive heart button with heartbeat pulse animation
-  - Heart explosion particle effect on click
-  - Video modal overlay that appears on heart click
-  - Close button for video modal
-  - Mobile-optimized (max-width 450px, iPhone 14 viewport tested)
-  - Custom scrollbar and selection styling
-- Updated layout.tsx metadata with birthday theme title and emoji favicon
-- Verified page renders correctly with Agent Browser (mobile and desktop viewports)
-- Tested all interactive elements: audio player toggle, heart click, video modal open/close
-- ESLint passes with no errors
+- Read current page.tsx, layout.tsx, and globals.css to understand existing state
+- Redesigned Screen 1 (splash): Removed circle, title, date - kept ONLY the golden heart with pulse animation and "Toca para abrir" text on dark background
+- Redesigned Screen 2 (landing): All elements (date, title, letter paragraphs, heart button) now reveal with scroll-triggered animations using IntersectionObserver
+- Added blur+scale+glow transition effects for "magical dopaminergic" reveal feel
+- Added significant spacing between sections: date takes 85vh, title has 6rem padding, heart has 6rem padding
+- Audio autoplay triggers on splash screen tap (user gesture requirement satisfied)
+- IntersectionObserver settings: threshold 0.2, rootMargin -80px, with 200-600ms staggered delays
+- Updated layout.tsx for dark background to prevent FOUC
+- Verified with Agent Browser: splash screen shows only heart+text, scroll reveals work progressively
 
 Stage Summary:
-- Production-ready birthday landing page at / route
-- All 6 design requirements fulfilled: cinematic palette, audio player, letter box, heart button, video modal, mobile responsiveness
-- Media files served from /public directory
-- No console errors or lint issues
+- Screen 1: Minimal splash with golden heart + "Toca para abrir" (no circle, no extra elements)
+- Screen 2: Scroll-triggered progressive reveals with blur/scale/glow effects
+- Each letter paragraph reveals independently as user scrolls
+- Audio plays on splash tap (reliable mobile autoplay)
+- No FOUC on page load
+- No console errors

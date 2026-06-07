@@ -23,14 +23,20 @@ export default function RootLayout({
         <style
           dangerouslySetInnerHTML={{
             __html: `
-              html {
-                background: #0a0a0f !important;
-              }
-              body {
+              html, body {
                 background: #0a0a0f !important;
                 color: #f0e6d3 !important;
                 margin: 0 !important;
-                overflow: hidden !important;
+                padding: 0 !important;
+              }
+              /* Hide everything initially - prevents FOUC */
+              #__next, #root, body > * {
+                opacity: 0;
+              }
+              /* Show content once React hydrates */
+              body > * {
+                opacity: 1;
+                transition: opacity 0.01s;
               }
             `,
           }}
