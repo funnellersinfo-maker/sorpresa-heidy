@@ -29,30 +29,14 @@ export default function RootLayout({
               body {
                 background: #0a0a0f !important;
                 color: #f0e6d3 !important;
-              }
-              #__dark-shield {
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                background: #0a0a0f;
-                z-index: 99999;
-                pointer-events: none;
-                animation: __shieldFade 0.4s ease 0.3s forwards;
-              }
-              @keyframes __shieldFade {
-                from { opacity: 1; }
-                to { opacity: 0; display: none; }
+                margin: 0 !important;
+                overflow: hidden !important;
               }
             `,
           }}
         />
       </head>
-      <body
-        style={{ backgroundColor: '#0a0a0f', color: '#f0e6d3', margin: 0 }}
-      >
-        <div id="__dark-shield" />
+      <body style={{ backgroundColor: '#0a0a0f', color: '#f0e6d3', margin: 0, overflow: 'hidden' }}>
         {children}
         <Toaster />
       </body>
