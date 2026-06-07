@@ -8,6 +8,7 @@ export default function Home() {
   const [heartClicked, setHeartClicked] = useState(false)
   const [audioPlaying, setAudioPlaying] = useState(false)
   const [flashActive, setFlashActive] = useState(false)
+  const [videoEnded, setVideoEnded] = useState(false)
   const [revealedSections, setRevealedSections] = useState<Set<number>>(new Set())
   const [particles, setParticles] = useState<Array<{ id: number; x: number; y: number; size: number; delay: number }>>([])
   const audioRef = useRef<HTMLAudioElement>(null)
@@ -35,7 +36,6 @@ export default function Home() {
           if (entry.isIntersecting) {
             const index = Number(entry.target.getAttribute('data-section'))
             if (!isNaN(index) && !revealedSections.has(index)) {
-              // Add staggered delay based on section index for more magical effect
               const delay = index === 0 ? 200 : 600
               setTimeout(() => {
                 setRevealedSections(prev => {
@@ -54,7 +54,6 @@ export default function Home() {
       }
     )
 
-    // Delay to allow DOM to settle after splash transition
     const timer = setTimeout(() => {
       sectionRefs.current.forEach((ref) => {
         if (ref) observer.observe(ref)
@@ -103,27 +102,47 @@ export default function Home() {
     }
   }, [entered])
 
-  const handleHeartClick = () => {
+  // Heart click: flash → open video → auto-play with song
+  const handleHeartClick = useCallback(() => {
     if (heartClicked) return
     setHeartClicked(true)
     setTimeout(() => setFlashActive(true), 400)
     setTimeout(() => {
       setShowVideo(true)
+      setVideoEnded(false)
       setFlashActive(false)
     }, 700)
-  }
+  }, [heartClicked])
 
-  const closeVideo = () => {
-    setShowVideo(false)
-    setHeartClicked(false)
-    if (videoRef.current) videoRef.current.pause()
-  }
-
+  // When video shows, play it
   useEffect(() => {
     if (showVideo && videoRef.current) {
+      videoRef.current.currentTime = 0
       videoRef.current.play().catch(() => {})
     }
   }, [showVideo])
+
+  // Video ended: show buttons
+  const handleVideoEnded = useCallback(() => {
+    setVideoEnded(true)
+  }, [])
+
+  // Repetir: restart video
+  const handleReplay = useCallback(() => {
+    setVideoEnded(false)
+    if (videoRef.current) {
+      videoRef.current.currentTime = 0
+      videoRef.current.play().catch(() => {})
+    }
+  }, [])
+
+  // Volver: close video, go back to landing
+  const handleVolver = useCallback(() => {
+    setShowVideo(false)
+    setVideoEnded(false)
+    setHeartClicked(false)
+    if (videoRef.current) videoRef.current.pause()
+  }, [])
 
   const setSectionRef = useCallback((index: number) => (el: HTMLDivElement | null) => {
     sectionRefs.current[index] = el
@@ -179,7 +198,7 @@ export default function Home() {
       <div className={`landing-page ${entered ? 'visible' : 'hidden-page'}`}>
         {flashActive && <div className="flash-overlay" />}
 
-        {audioPlaying && (
+        {audioPlaying && !showVideo && (
           <div className="now-playing-indicator">
             <div className="np-visualizer">
               <span className="np-bar np-bar-1" />
@@ -198,7 +217,7 @@ export default function Home() {
         </div>
 
         <div className="main-container">
-          {/* Section 0: Date - takes first viewport */}
+          {/* Section 0: Date */}
           <div
             ref={setSectionRef(0)}
             data-section="0"
@@ -234,7 +253,7 @@ export default function Home() {
             <div className="sparkle-line" />
           </div>
 
-          {/* Section 2: Letter greeting + decoration */}
+          {/* Section 2: Letter greeting */}
           <div
             ref={setSectionRef(2)}
             data-section="2"
@@ -244,7 +263,6 @@ export default function Home() {
             <p className={`letter-greeting scroll-reveal-inner ${isRevealed(2) ? 'revealed' : ''}`}>Para mi niña hermosa,</p>
             <div className={`letter-divider scroll-reveal-inner ${isRevealed(2) ? 'revealed' : ''}`} />
 
-            {/* Section 3: Paragraph 1 */}
             <div
               ref={setSectionRef(3)}
               data-section="3"
@@ -253,7 +271,6 @@ export default function Home() {
               Hoy cumples 28 añitos y, mirándote hoy, solo puedo sentir un orgullo inmenso por la mujer que eres y un agradecimiento infinito por tener el privilegio de caminar a tu lado.
             </div>
 
-            {/* Section 4: Paragraph 2 */}
             <div
               ref={setSectionRef(4)}
               data-section="4"
@@ -262,7 +279,6 @@ export default function Home() {
               Sé muy bien que nuestro camino no ha sido perfecto. Sé que he cometido errores reales, que he sido desleal, descuidado y que te he fallado con actitudes que nunca mereciste. No pretendo borrar el pasado con promesas vacías, porque sé que las palabras se las lleva el viento; hoy mi único objetivo es respaldar este amor con hechos, con respeto absoluto, cuidando cada detalle y protegiendo tu paz día tras día.
             </div>
 
-            {/* Section 5: Paragraph 3 */}
             <div
               ref={setSectionRef(5)}
               data-section="5"
@@ -271,7 +287,6 @@ export default function Home() {
               Gracias por tu resiliencia, por tu amor incondicional y por este borrón y cuenta nueva que hoy nos une más fuerte. Quiero que camines con la tranquilidad de que mi corazón te pertenece solo a ti. Contigo quiero pasar el resto de mi vida, y aunque hoy te entrego este detalle digital, prepárate... porque muy pronto llegará ese anillo y ese &quot;sí para siempre&quot; que tanto deseo darte ante el mundo.
             </div>
 
-            {/* Section 6: Closing */}
             <div
               ref={setSectionRef(6)}
               data-section="6"
@@ -308,12 +323,55 @@ export default function Home() {
           </div>
         </div>
 
+        {/* ===== FULLSCREEN VIDEO ===== */}
         {showVideo && (
           <div className="video-fullscreen">
-            <button className="video-close-btn" onClick={closeVideo} aria-label="Cerrar video">✕</button>
-            <video ref={videoRef} controls autoPlay playsInline className="video-player-fs">
+            <video
+              ref={videoRef}
+              autoPlay
+              playsInline
+              className="video-player-fs"
+              onEnded={handleVideoEnded}
+            >
               <source src="/collage.mp4" type="video/mp4" />
             </video>
+
+            {/* End-of-video overlay with magical buttons */}
+            {videoEnded && (
+              <div className="video-end-overlay">
+                <div className="video-end-sparkles">
+                  {Array.from({ length: 12 }).map((_, i) => (
+                    <div
+                      key={i}
+                      className="end-sparkle"
+                      style={{
+                        left: `${10 + Math.random() * 80}%`,
+                        top: `${10 + Math.random() * 80}%`,
+                        animationDelay: `${Math.random() * 2}s`,
+                      }}
+                    >
+                      ✦
+                    </div>
+                  ))}
+                </div>
+                <div className="video-end-content">
+                  <button className="video-end-btn btn-repetir" onClick={handleReplay} aria-label="Repetir video">
+                    <span className="btn-sparkle btn-sparkle-1">✦</span>
+                    <span className="btn-sparkle btn-sparkle-2">✦</span>
+                    <span className="btn-text">Repetir</span>
+                    <span className="btn-sparkle btn-sparkle-3">✦</span>
+                    <span className="btn-sparkle btn-sparkle-4">✦</span>
+                  </button>
+                  <button className="video-end-btn btn-volver" onClick={handleVolver} aria-label="Volver">
+                    <span className="btn-sparkle btn-sparkle-1">✦</span>
+                    <span className="btn-sparkle btn-sparkle-2">✦</span>
+                    <span className="btn-text">Volver</span>
+                    <span className="btn-sparkle btn-sparkle-3">✦</span>
+                    <span className="btn-sparkle btn-sparkle-4">✦</span>
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -326,7 +384,7 @@ export default function Home() {
         * { margin: 0; padding: 0; box-sizing: border-box; }
         html, body { overflow-x: hidden; background: #0a0a0f !important; color: #f0e6d3 !important; }
 
-        /* ===== SPLASH: Just heart + Toca para abrir ===== */
+        /* ===== SPLASH ===== */
         .splash-screen {
           position: fixed;
           top: 0; left: 0; width: 100%; height: 100%;
@@ -485,10 +543,9 @@ export default function Home() {
           display: flex; flex-direction: column; align-items: center; flex: 1;
         }
 
-        /* ===== DATE: First viewport ===== */
+        /* ===== DATE ===== */
         .date-section {
           position: relative; text-align: center;
-          /* Take full viewport height - centered */
           min-height: 85vh; min-height: 85dvh;
           display: flex; flex-direction: column; align-items: center; justify-content: center;
         }
@@ -527,7 +584,6 @@ export default function Home() {
         .header-section {
           text-align: center; display: flex; flex-direction: column; align-items: center;
           gap: 0.75rem; padding: 6rem 0 4rem;
-          /* Extra spacing so it needs scroll to reach */
         }
         .sparkle-line { width: 120px; height: 1px; background: linear-gradient(90deg, transparent, #d4af37, transparent); }
         .title-main {
@@ -577,7 +633,6 @@ export default function Home() {
         .heart-section {
           position: relative; display: flex; flex-direction: column; align-items: center;
           padding: 6rem 0 3rem;
-          /* Extra spacing so it needs scroll to reach */
         }
         .heart-section.heart-exploded { transform: scale(0.8); opacity: 0; pointer-events: none; transition: all 0.5s ease; }
         .heart-btn {
@@ -602,24 +657,112 @@ export default function Home() {
           100% { transform: translate(-50%, -50%) rotate(var(--angle)) translateY(calc(-1 * var(--distance))); opacity: 0; }
         }
 
-        /* ===== VIDEO ===== */
+        /* ===== VIDEO FULLSCREEN ===== */
         .video-fullscreen {
           position: fixed; top: 0; left: 0; width: 100%; height: 100%;
           background: #000; z-index: 1000;
           display: flex; align-items: center; justify-content: center;
-          animation: videoReveal 0.3s ease-out;
+          animation: videoReveal 0.5s ease-out;
         }
         @keyframes videoReveal { 0% { opacity: 0; } 100% { opacity: 1; } }
-        .video-close-btn {
-          position: absolute; top: 16px; right: 16px;
-          background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
-          border: 1px solid rgba(212, 175, 55, 0.3); color: #d4af37;
-          width: 40px; height: 40px; border-radius: 50%; font-size: 1.1rem;
-          cursor: pointer; display: flex; align-items: center; justify-content: center;
-          transition: all 0.2s ease; z-index: 10;
-        }
-        .video-close-btn:hover { background: rgba(212, 175, 55, 0.3); transform: scale(1.1); }
         .video-player-fs { width: 100%; height: 100%; object-fit: contain; display: block; }
+
+        /* ===== VIDEO END OVERLAY ===== */
+        .video-end-overlay {
+          position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+          background: rgba(10, 10, 15, 0.85);
+          backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+          display: flex; align-items: center; justify-content: center;
+          z-index: 10;
+          animation: endOverlayIn 1s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        @keyframes endOverlayIn {
+          0% { opacity: 0; }
+          100% { opacity: 1; }
+        }
+
+        .video-end-sparkles {
+          position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+          pointer-events: none; overflow: hidden;
+        }
+        .end-sparkle {
+          position: absolute;
+          color: #d4af37;
+          font-size: 1rem;
+          animation: endSparkleFloat 3s ease-in-out infinite;
+          opacity: 0.5;
+        }
+        @keyframes endSparkleFloat {
+          0%, 100% { transform: translateY(0) scale(1); opacity: 0.3; }
+          50% { transform: translateY(-20px) scale(1.5); opacity: 1; }
+        }
+
+        .video-end-content {
+          display: flex; flex-direction: column; align-items: center; gap: 1.5rem;
+          z-index: 1;
+        }
+
+        .video-end-btn {
+          position: relative;
+          display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+          min-width: 220px;
+          padding: 1rem 2rem;
+          border: 2px solid rgba(212, 175, 55, 0.5);
+          border-radius: 50px;
+          background: rgba(212, 175, 55, 0.1);
+          backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+          cursor: pointer;
+          -webkit-tap-highlight-color: transparent;
+          animation: btnAppear 1.2s cubic-bezier(0.16, 1, 0.3, 1) both;
+          transition: all 0.3s ease;
+        }
+        .video-end-btn:nth-child(1) { animation-delay: 0.2s; }
+        .video-end-btn:nth-child(2) { animation-delay: 0.5s; }
+
+        @keyframes btnAppear {
+          0% { opacity: 0; transform: translateY(30px) scale(0.8); filter: blur(6px); }
+          100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+        }
+
+        .video-end-btn:hover {
+          background: rgba(212, 175, 55, 0.25);
+          border-color: rgba(212, 175, 55, 0.8);
+          transform: scale(1.05);
+          box-shadow: 0 0 30px rgba(212, 175, 55, 0.3), 0 0 60px rgba(212, 175, 55, 0.1);
+        }
+        .video-end-btn:active {
+          transform: scale(0.97);
+        }
+
+        .btn-text {
+          font-family: 'Playfair Display', Georgia, serif;
+          font-size: 1.2rem; font-weight: 600;
+          color: #d4af37;
+          letter-spacing: 0.1em;
+          text-shadow: 0 0 15px rgba(212, 175, 55, 0.4);
+        }
+
+        .btn-sparkle {
+          color: #d4af37;
+          font-size: 0.7rem;
+          animation: btnSparkle 1.5s ease-in-out infinite;
+        }
+        .btn-sparkle-1 { animation-delay: 0s; }
+        .btn-sparkle-2 { animation-delay: 0.3s; }
+        .btn-sparkle-3 { animation-delay: 0.6s; }
+        .btn-sparkle-4 { animation-delay: 0.9s; }
+
+        @keyframes btnSparkle {
+          0%, 100% { opacity: 0.3; transform: scale(0.8); }
+          50% { opacity: 1; transform: scale(1.3); }
+        }
+
+        .btn-repetir {
+          box-shadow: 0 0 20px rgba(212, 175, 55, 0.15), 0 0 40px rgba(212, 175, 55, 0.05);
+        }
+        .btn-volver {
+          box-shadow: 0 0 20px rgba(212, 175, 55, 0.15), 0 0 40px rgba(212, 175, 55, 0.05);
+        }
 
         /* ===== FOOTER ===== */
         .footer { position: relative; z-index: 1; text-align: center; padding: 2rem 1rem 1rem; margin-top: auto; width: 100%; max-width: 450px; }
